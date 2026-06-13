@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>yt-dlp</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0f0f0f;
+    color: #f0f0f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    gap: 3rem;
+  }
+
+  .main {
+    width: 100%;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  h1 {
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  input {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    color: #f0f0f0;
+    font-size: 14px;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input:focus { border-color: #444; }
+  input::placeholder { color: #444; }
+
+  button {
+    background: #ff0000;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+
+  button:hover { background: #cc0000; }
+  button:active { transform: scale(0.98); }
+
+  .cmd-box {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 12.5px;
+    color: #aaa;
+    line-height: 1.6;
+    word-break: break-all;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    position: relative;
+  }
+
+  .cmd-box:hover { border-color: #444; }
+
+  .cmd-box .hint {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 10px;
+    color: #444;
+    font-family: -apple-system, sans-serif;
+  }
+
+  .cmd-box .kw  { color: #ff6b6b; }
+  .cmd-box .flag { color: #79c0ff; }
+  .cmd-box .val  { color: #a5d6a7; }
+  .cmd-box .url  { color: #ffd700; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    background: #222;
+    border: 1px solid #333;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 13px;
+    opacity: 0;
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* instrucciones */
+  .guide {
+    width: 100%;
+    max-width: 560px;
+    border-top: 1px solid #1e1e1e;
+    padding-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .guide-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #444;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .step {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .step-n {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #1e1e1e;
+    color: #555;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-text {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  .step-text code {
+    font-family: 'JetBrains Mono', monospace;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    color: #a5d6a7;
+  }
+
+  .step-text a {
+    color: #79c0ff;
+    text-decoration: none;
+  }
+
+  .step-text a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="main">
+  <h1>yt-dlp</h1>
+
+  <div class="input-row">
+    <input type="text" id="url" placeholder="Pegá la URL acá..." autofocus />
+    <button onclick="generate()">Generar</button>
+  </div>
+
+  <div class="cmd-box" id="cmd" onclick="copyCmd()">
+    <span class="hint">clic para copiar</span>
+    <span class="kw">yt-dlp</span> <span class="flag">-f</span> <span class="val">"bestvideo+bestaudio"</span> <span class="flag">--merge-output-format</span> <span class="val">mp4</span> <span class="flag">--embed-metadata</span> <span class="flag">-o</span> <span class="val">"%(title)s.%(ext)s"</span> <span class="url">"URL_AQUÍ"</span>
+  </div>
+</div>
+
+<div class="guide">
+  <div class="guide-title">Instalación</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-text">
+        Instalá <strong style="color:#f0f0f0">yt-dlp</strong>:<br>
+        Mac → <code>brew install yt-dlp</code><br>
+        Windows → <code>winget install yt-dlp</code> o bajalo desde <a href="https://github.com/yt-dlp/yt-dlp/releases" target="_blank">github.com/yt-dlp</a>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-text">
+        Instalá <strong style="color:#f0f0f0">ffmpeg</strong> (necesario para unir video y audio):<br>
+        Mac → <code>brew install ffmpeg</code><br>
+        Windows → <code>winget install ffmpeg</code>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-text">
+        Pegá la URL arriba, copiá el comando y pegalo en la terminal. El archivo queda en la carpeta donde estés parado.
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">4</div>
+      <div class="step-text">
+        Para elegir en qué carpeta guardar, agregá la ruta en el <code>-o</code>:<br>
+        <code>-o "/Users/vos/Videos/%(title)s.%(ext)s"</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">¡Copiado!</div>
+
+<script>
+  function generate() {
+    const url = document.getElementById("url").value.trim();
+    const el = document.getElementById("cmd");
+    const display = url || "URL_AQUÍ";
+    el.innerHTML = `
+      <span class="hint">clic para copiar</span>
+      <span class="kw">yt-dlp</span> <span class="flag">-f</span> <span class="val">"bestvideo+bestaudio"</span> <span class="flag">--merge-output-format</span> <span class="val">mp4</span> <span class="flag">--embed-metadata</span> <span class="flag">-o</span> <span class="val">"%(title)s.%(ext)s"</span> <span class="url">"${display}"</span>
+    `;
+  }
+
+  function copyCmd() {
+    const url = document.getElementById("url").value.trim() || "URL_AQUÍ";
+    const cmd = `yt-dlp -f "bestvideo+bestaudio" --merge-output-format mp4 --embed-metadata -o "%(title)s.%(ext)s" "${url}"`;
+    navigator.clipboard.writeText(cmd).then(() => {
+      const t = document.getElementById("toast");
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 1800);
+    });
+  }
+
+  document.getElementById("url").addEventListener("keydown", e => {
+    if (e.key === "Enter") generate();
+  });
+</script>
+</body>
+</html>
